@@ -16,7 +16,6 @@ import { isValidHexColor } from "../src/common/utils.js";
 import { themes } from "../themes/index.js";
 import { getGithubToken, getRepoInfo } from "./helpers.js";
 
-// Script variables.
 const COMMENTER = "github-actions[bot]";
 
 const COMMENT_TITLE = "Automated Theme Preview";
@@ -24,8 +23,8 @@ const THEME_PR_FAIL_TEXT = ":x: Theme PR does not adhere to our guidelines.";
 const THEME_PR_SUCCESS_TEXT =
   ":heavy_check_mark: Theme PR does adhere to our guidelines.";
 const FAIL_TEXT = `
-  \rUnfortunately, your theme PR does not adhere to our [theme guidelines](https://github.com/anuraghazra/github-readme-stats/blob/master/CONTRIBUTING.md#themes-contribution). Please fix the issues below, and we will review your\
-  \r PR again. This pull request will **automatically close in 15 days** if no changes are made. After this time, you must re-open the PR for it to be reviewed.
+  \rUnfortunately, your theme PR contains an error or does not adhere to our [theme guidelines](https://github.com/anuraghazra/github-readme-stats/blob/master/CONTRIBUTING.md#themes-contribution). Please fix the issues below, and we will review your\
+  \r PR again. This pull request will **automatically close in 20 days** if no changes are made. After this time, you must re-open the PR for it to be reviewed.
 `;
 const THEME_CONTRIB_GUIDELINESS = `
   \rHi, thanks for the theme contribution. Please read our theme [contribution guidelines](https://github.com/anuraghazra/github-readme-stats/blob/master/CONTRIBUTING.md#themes-contribution).
@@ -93,7 +92,7 @@ const isPreviewComment = (inputs, comment) => {
  * @param {number} issueNumber Issue number.
  * @param {string} repo Repository name.
  * @param {string} owner Owner of the repository.
- * @returns {Object} The Github comment object.
+ * @returns {Object} The GitHub comment object.
  */
 const findComment = async (octokit, issueNumber, owner, repo, commenter) => {
   const parameters = {
@@ -558,6 +557,28 @@ export const run = async (prNumber) => {
       info(`DRY_RUN: Review reason: ${reviewReason}`);
     }
   } catch (error) {
+    debug("Set review state to `REQUEST_CHANGES` and add `invalid` label...");
+    if (!dryRun) {
+      await addReview(
+        octokit,
+        pullRequestId,
+        owner,
+        repo,
+        "REQUEST_CHANGES",
+        error.message,
+      );
+      await addRemoveLabel(
+        octokit,
+        pullRequestId,
+        owner,
+        repo,
+        "invalid",
+        true,
+      );
+    } else {
+      info(`DRY_RUN: Review state: REQUEST_CHANGES`);
+      info(`DRY_RUN: Review reason: ${error.message}`);
+    }
     setFailed(error.message);
   }
 };
